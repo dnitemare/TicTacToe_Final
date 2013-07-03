@@ -11,7 +11,174 @@ using namespace std;
 const unsigned short int LWINCOMBO[8][3][2] = { { /*Rows*/ {0,0},{0,1},{0,2} }, { {1,0},{1,1}, {1,2} }, { {2,0},{2,1},{2,2} },
                                     /*Columns*/ { {0,0},{1,0},{2,0} }, { {0,1},{1,1},{2,1} }, { {0,2},{1,2},{2,2} },
                                     /*Diagonals*/ { {0,0},{1,1},{2,2} }, { {0,2},{1,1},{2,0} } }; 
-const unsigned short int MWINCOMBO[8][3] = { {1,2,3}, {4,5,6} , {7,8,9}, {1,4,7}, {2,5,8}, {3,6,9}, {1,5,9}, {3,5,7} };
+const unsigned short int MWINCOMBO[8][8] = { {1,2,3}, {4,5,6} , {7,8,9}, {1,4,7}, {2,5,8}, {3,6,9}, {1,5,9}, {3,5,7} };
+
+
+//*******************************************************//
+//                      Bot AI                          //
+//*****************************************************//
+
+//Function to look ahead and list the logical moves to make
+bool BoardData::lookAhead() {
+	bool badmove = 0;
+
+    if (countturns == 1) {
+        if (board[1][1] == ' ' && (board[0][0] == userside || board[0][2] == userside || 
+            board[2][0] == userside || board[2][2] == userside)) {
+            locations[0] = 1;
+            locations[1] = 1;
+            return 1;
+            }
+        else {
+            return cornerMove();
+        }
+    }
+    
+    for (int i = 0; i < botpiece.size(); i++) { //check each bot movecout << i << " ";
+        for (int j = 0; j < ismatch.size(); j++) { //check each open space for 3 in row setup
+            finalmove.clear();
+				
+            //check if valid move
+            if (RELATIVEWIN[botpiece[i]][ismatch[j]] != -1)
+                convertMove(1 + RELATIVEWIN[botpiece[i]][ismatch[j]]);
+
+            if (RELATIVEWIN[botpiece[i]][ismatch[j]] != -1 && board[locations[0]][locations[1]] == ' ' ) {
+                badmove = 0;
+				short int tempBmove = ismatch[j];
+				short int tempUmove = RELATIVEWIN[ botpiece[i] ][ ismatch[j] ];
+                short int userwins = 0;
+				for (int k = 0; k < userpiece.size(); k++) { //check if this move is bad
+					
+							
+                            convertMove(1 + RELATIVEWIN[userpiece[k]][tempUmove]);
+							if (RELATIVEWIN[userpiece[k]][tempUmove] != -1 && board[locations[0]][locations[1]] == ' ') {
+								userwins++;
+                                }
+
+                            if (userwins >= 2) {
+							badmove = 1;
+							break;
+							}
+                        
+                    } //end of bad move check
+				if (badmove == 0)
+					finalmove.push_back(tempBmove);
+                }//end of valid move check
+            }//end of each open space
+    }//end of each bot move
+    if (finalmove.size() == 0)
+        return 0;
+    else {
+        short int getrand = rand() % finalmove.size();
+        convertMove(1 + finalmove[getrand]);
+        return 1;
+        }
+}//end of function
+
+//*******************************************************************//
+//              Make a Move Function Here.                          //
+//*****************************************************************//
+
+//---------------Function to make the move for the user    makeMove(board, userside, botside, turn);
+//Warning: this is a monster of a function <.< it does most of the action
+void BoardData::makeMove () {
+
+    //Get the user's move and save it in umove
+        unsigned short int umove = 0;
+    
+        //print the board numbers
+    cout << "\t\t\t[ Tic-Tac-Toe ]\n\n";
+    for (int i = 0; i < 9; i++) {
+        if ( (i % 3) == 0)
+            cout << "\n\n\t\t\t     ";
+            
+        cout << i + 1 << "  ";
+    }
+    //Begin the loop to get the move and modify the board appropriately (loops until valid choice is made)
+    do {
+    cout << "\n\n";
+    if (turn == 0) {
+        cout << "* " << userside << " * - ";
+        cout << "choose a move. starting top left at 1, to bottom right at 9.  (1-9): ";
+        cin >> setw(1) >> umove;
+        usermove[countturns] = umove;
+        
+        convertMove(umove);
+
+    }
+    
+    else { //bot's move
+        cout << "* " << botside << " * - ";
+        countMatches();
+
+        if (mode == 1) {
+            bool movedyet = 0;
+            if (movedyet == 0)
+                movedyet = winMaker();
+            if (movedyet == 0)
+                randomMove();
+        }
+        
+        else if (mode == 2) {
+            bool movedyet = 0;
+            if (movedyet == 0)
+                movedyet = winMaker();
+            if (movedyet == 0)
+                movedyet = cornerMove();
+            if (movedyet == 0)
+                randomMove();
+            }
+
+
+        else if (mode == 3) { //GURU MODE
+            bool movedyet = 0;
+            
+                if (movedyet == 0)
+                    movedyet = winMaker();
+                //if (movedyet == 0)
+                    //movedyet = matchMaker();
+                if (movedyet == 0)
+                    movedyet = lookAhead();
+                if (movedyet == 0)
+                    movedyet = cornerMove();
+                if (movedyet == 0)
+                    randomMove();
+            
+            }
+            
+        //for all bots    
+        umove = convertMove(locations[0], locations[1]);
+        }
+        
+    
+    
+    //Print an error if they have done something wrong
+    if ( (turn == 0 && (umove <= 0 || umove >= 10)) || (board[ locations[0] ][ locations[1] ] != ' ')) {
+        cout << "Invalid choice. Please choose a number between 1 and 9.\n";
+        }
+    
+    }//Evaluate if it is a valid move (loop till it is)
+    while ((umove <= 0 || umove >= 10) || (board[ locations[0] ][ locations[1] ] != ' ') );
+     
+    //make the move (modify the board accordingly) now that the entry is valid
+    if (turn == 0)
+        board[ locations[0] ][ locations[1] ] = userside;
+    else
+        board[ locations[0] ][ locations[1] ] = botside;
+    
+    
+    //Manage who's move it is.
+    if (turn == 0)
+        turn = 1;
+    else
+        turn = 0;
+        
+    //Clear the screen and print the modified board
+    system("cls");
+    printBoard();
+    cout << "\n\n\n";
+}
+
 
 //-------------Function to set the sides. game.setSides();
 void BoardData::setSides() {
@@ -50,11 +217,74 @@ void BoardData::resetData() {
         countturns = 0;
         win = 0;
 
+
+        //set the relative wins START
+        for (int i = 0; i < 9; i++) { //set all values to -1 first for spotting purposes.
+            for (int j =0; j < 9; j++) {
+                RELATIVEWIN[i][j] = -1;
+                }
+            }
+        RELATIVEWIN[0][1] = 2;
+        RELATIVEWIN[0][2] = 1;
+        RELATIVEWIN[0][3] = 6;
+        RELATIVEWIN[0][4] = 8;
+        RELATIVEWIN[0][6] = 3;
+        RELATIVEWIN[0][8] = 4;
+
+        RELATIVEWIN[1][0] = 2;
+        RELATIVEWIN[1][2] = 0;
+        RELATIVEWIN[1][4] = 7;
+        RELATIVEWIN[1][7] = 4;
+
+        RELATIVEWIN[2][0] = 1;
+        RELATIVEWIN[2][1] = 0;
+        RELATIVEWIN[2][4] = 6;
+        RELATIVEWIN[2][6] = 4;
+        RELATIVEWIN[2][5] = 8;
+        RELATIVEWIN[2][8] = 5;
+
+        RELATIVEWIN[3][0] = 6;
+        RELATIVEWIN[3][6] = 0;
+        RELATIVEWIN[3][4] = 5;
+        RELATIVEWIN[3][5] = 4;
+
+        RELATIVEWIN[4][0] = 8;
+        RELATIVEWIN[4][8] = 0;
+        RELATIVEWIN[4][1] = 7;
+        RELATIVEWIN[4][7] = 1;
+        RELATIVEWIN[4][3] = 5;
+        RELATIVEWIN[4][5] = 3;
+        RELATIVEWIN[4][2] = 6;
+        RELATIVEWIN[4][6] = 2;
+
+        RELATIVEWIN[5][2] = 8;
+        RELATIVEWIN[5][8] = 2;
+        RELATIVEWIN[5][3] = 4;
+        RELATIVEWIN[5][4] = 3;
+
+        RELATIVEWIN[6][0] = 3;
+        RELATIVEWIN[6][3] = 0;
+        RELATIVEWIN[6][2] = 4;
+        RELATIVEWIN[6][4] = 2;
+        RELATIVEWIN[6][7] = 8;
+        RELATIVEWIN[6][8] = 7;
+
+        RELATIVEWIN[7][1] = 4;
+        RELATIVEWIN[7][4] = 1;
+        RELATIVEWIN[7][6] = 8;
+        RELATIVEWIN[7][8] = 6;
+
+        RELATIVEWIN[8][0] = 4;
+        RELATIVEWIN[8][4] = 0;
+        RELATIVEWIN[8][2] = 5;
+        RELATIVEWIN[8][5] = 2;
+        RELATIVEWIN[8][6] = 7;
+        RELATIVEWIN[8][7] = 6;
+//Relative win END
         
-        badmove.clear();
-        goodmove.clear();
-        bmatch.clear();
-        umatch.clear();
+        ismatch.clear(); 
+        userpiece.clear();
+        botpiece.clear();
         
         //reset the board
         for (int i = 0; i < SIZE; i++) {
@@ -225,109 +455,7 @@ void BoardData::convertMove(int x) {
         }
 }
 
-//*******************************************************************//
-//              Make a Move Function Here.                          //
-//*****************************************************************//
 
-//---------------Function to make the move for the user    makeMove(board, userside, botside, turn);
-//Warning: this is a monster of a function <.< it does most of the action
-void BoardData::makeMove () {
-
-    //Get the user's move and save it in umove
-        unsigned short int umove = 0;
-    
-        //print the board numbers
-    cout << "\t\t\t[ Tic-Tac-Toe ]\n\n";
-    for (int i = 0; i < 9; i++) {
-        if ( (i % 3) == 0)
-            cout << "\n\n\t\t\t     ";
-            
-        cout << i + 1 << "  ";
-    }
-    //Begin the loop to get the move and modify the board appropriately (loops until valid choice is made)
-    do {
-    cout << "\n\n";
-    if (turn == 0) {
-        cout << "* " << userside << " * - ";
-        cout << "choose a move. starting top left at 1, to bottom right at 9.  (1-9): ";
-        cin >> setw(1) >> umove;
-        usermove[countturns] = umove;
-        
-        convertMove(umove);
-
-    }
-    
-    else { //bot's move
-        cout << "* " << botside << " * - ";
-        countMatches();
-
-        if (mode == 1) {
-            bool movedyet = 0;
-            if (movedyet == 0)
-                movedyet = winMaker();
-            if (movedyet == 0)
-                randomMove();
-        }
-        
-        else if (mode == 2) {
-            bool movedyet = 0;
-            if (movedyet == 0)
-                movedyet = winMaker();
-            if (movedyet == 0)
-                movedyet = cornerMove();
-            if (movedyet == 0)
-                randomMove();
-            }
-
-
-        else if (mode == 3) { //GURU MODE
-            bool movedyet = 0;
-            
-                if (movedyet == 0)
-                    movedyet = winMaker();
-                //if (movedyet == 0)
-                    //movedyet = matchMaker();
-                if (movedyet == 0)
-                    movedyet = getGoodMove();
-                if (movedyet == 0)
-                    movedyet = cornerMove();
-                if (movedyet == 0)
-                    randomMove();
-            
-            }
-            
-        //for all bots    
-        umove = convertMove(locations[0], locations[1]);
-        }
-        
-    
-    
-    //Print an error if they have done something wrong
-    if ( (turn == 0 && (umove <= 0 || umove >= 10)) || (board[ locations[0] ][ locations[1] ] != ' ')) {
-        cout << "Invalid choice. Please choose a number between 1 and 9.\n";
-        }
-    
-    }//Evaluate if it is a valid move (loop till it is)
-    while ((umove <= 0 || umove >= 10) || (board[ locations[0] ][ locations[1] ] != ' ') );
-     
-    //make the move (modify the board accordingly) now that the entry is valid
-    if (turn == 0)
-        board[ locations[0] ][ locations[1] ] = userside;
-    else
-        board[ locations[0] ][ locations[1] ] = botside;
-    
-    
-    //Manage who's move it is.
-    if (turn == 0)
-        turn = 1;
-    else
-        turn = 0;
-        
-    //Clear the screen and print the modified board
-    system("cls");
-    printBoard();
-    cout << "\n\n\n";
-}
 //--------------Function to check whether there is a 3 in a row win to be had....
 bool BoardData::winMaker() {
 
@@ -541,8 +669,10 @@ void BoardData::randomMove() {
 
 //--------------Function to get all the possible matches
 void BoardData::countMatches() {
-    umatch.clear();
-    bmatch.clear();
+    ismatch.clear();
+    userpiece.clear();
+    botpiece.clear();
+
 short int move1[2], move2[2], move3[2];
     
     
@@ -562,302 +692,36 @@ short int move1[2], move2[2], move3[2];
                 move3[0] = LWINCOMBO[i][j][0];
                 move3[1] = LWINCOMBO[i][j][1];
                 }
-            }  
-        //if there is a bot piece in any winning location then
-        if (board[ move1[0] ][ move1[1] ] == botside || board[ move2[0] ][ move2[1] ] == botside || board[ move3[0] ][ move3[1] ] == botside) {
-            //if there are 2 blank spaces, mark the locations down.
+            }// end of j loop ( set winning moves 1,2,3 ) 
+
+        //if there are 2 blank spaces, mark the locations down.
             if (board[ move1[0] ][ move1[1] ] == ' ' && board[ move2[0] ][ move2[1] ] == ' '){
                 
-                bmatch.push_back( convertMove(move1[0] , move1[1]) );
-                bmatch.push_back( convertMove(move2[0] , move2[1]) );
+                ismatch.push_back( convertMove(move1[0] , move1[1]) - 1 );
+                ismatch.push_back( convertMove(move2[0] , move2[1]) - 1 );
                 }
             else if (board[ move2[0] ][ move2[1] ] == ' ' && board[ move3[0] ][ move3[1] ] == ' ') {
                 
-                bmatch.push_back( convertMove(move2[0] , move2[1]) );
-                bmatch.push_back( convertMove(move3[0] , move3[1]) );
+                ismatch.push_back( convertMove(move2[0] , move2[1]) - 1 );
+                ismatch.push_back( convertMove(move3[0] , move3[1]) - 1 );
 
                 }
             else if (board[ move1[0] ][ move1[1] ] == ' ' && board[ move3[0] ][ move3[1] ] == ' ') {
                 
-                bmatch.push_back( convertMove(move1[0] , move1[1]) );
-                bmatch.push_back( convertMove(move3[0] , move3[1]) );
+                ismatch.push_back( convertMove(move1[0] , move1[1]) - 1 );
+                ismatch.push_back( convertMove(move3[0] , move3[1]) - 1 );
 
                 }
-        }//end of bot check
-
-        //if there is a user piece in any winning location then
-        if (board[ move1[0] ][ move1[1] ] == userside || board[ move2[0] ][ move2[1] ] == userside || board[ move3[0] ][ move3[1] ] == userside) {
-                             
-            //if there are 2 blank spaces, mark the locations down.
-            if (board[ move1[0] ][ move1[1] ] == ' ' && board[ move2[0] ][ move2[1] ] == ' '){
-                
-                umatch.push_back( convertMove(move1[0] , move1[1]) );
-                umatch.push_back( convertMove(move2[0] , move2[1]) );
-                }
-            else if (board[ move2[0] ][ move2[1] ] == ' ' && board[ move3[0] ][ move3[1] ] == ' ') {
-                
-                umatch.push_back( convertMove(move2[0] , move2[1]) );
-                umatch.push_back( convertMove(move3[0] , move3[1]) );
-
-                }
-            else if (board[ move1[0] ][ move1[1] ] == ' ' && board[ move3[0] ][ move3[1] ] == ' ') {
-                
-                umatch.push_back( convertMove(move1[0] , move1[1]) );
-                umatch.push_back( convertMove(move3[0] , move3[1]) );
-
-                }
-        }//end of user check
-        
+    convertMove(i + 1);
+    if (board[locations[0]][locations[1]] == userside) {
+        userpiece.push_back(i);
+        }
+    else if (board[locations[0]][locations[1]] == botside) {
+        botpiece.push_back(i);
+        }
 
     }//All the matches have been checked now 
     
 
 }
-//*******************************************************//
-//                      Bot AI                          //
-//*****************************************************//
 
-//Function to add weight to the moves
-
-bool BoardData::getGoodMove() {
-    badmove.clear();
-    goodmove.clear();
-
-    if (countturns == 1) { //if user moved first
-
-        //if middle is open and user has made a corner move
-        if (board[1][1] == ' ' && (board[0][0] == userside || board[0][2] == userside || board[2][0] == userside || board[2][2] == userside) ) {
-            locations[0] = 1;
-            locations[1] = 1;
-            return 1;
-            }
-        else { //otherwise make a corner move
-            return cornerMove();
-            }
-    }
-
-    //Loop to find moves that will set the user up for a split
-    for (int i = 0; i < umatch.size(); i++) {
-        for (int j = 0; j < umatch.size(); j++) {
-            if (i == j) {
-                continue; //it will always be true otherwise... that's bad, mmk?
-            }
-            else {
-                if (umatch[i] == umatch[j]) {
-                    badmove.push_back(umatch[i]);
-                }
-            }
-        }
-    }//end of loop
-
-        //Loop to find moves that will set the bot up for a split
-    for (int i = 0; i < bmatch.size(); i++) {
-        for (int j = 0; j < bmatch.size(); j++) {
-            if (i == j) {
-                continue; //it will always be true otherwise... that's bad, mmk?
-            }
-            else {
-                if (bmatch[i] == bmatch[j]) {
-                    goodmove.push_back(bmatch[i]);
-                }
-            }
-        }
-    }//end of loop
-
-    //################################################################################//
-    //                           Actual Move logic section                           //
-    //##############################################################################//
-
-    //Loop to get a random move that is NOT a bad move
-        if (!badmove.empty()) { //if there is a bad move
-            if (!goodmove.empty()) { //if there is a good move as well
-                for (int i = 0; i < badmove.size();i++) {
-                    for (int j = 0; j < goodmove.size();j++) {
-                        if (badmove[i] == goodmove[j])
-                            goodmove[j] = -1;//make the move invalid if it is not a good move.
-                        }
-                }
-                //if there is still a valid good move to make do so
-                for (int i = 0; i < goodmove.size(); i++) {
-                    if (goodmove[i] != -1) {
-                        convertMove(goodmove[i]);
-                        return 1;
-                        }
-                }
-
-            }//end of if good move as well
-            //if there is no good move to make, make one that is not a bad move.
-            int getrand = rand() % bmatch.size();
-            bool skipme = 0;
-            do {
-                skipme = 0;
-                getrand = rand() % bmatch.size();
-                for (int i = 0; i < badmove.size(); i++) {
-                    if (bmatch[getrand] == badmove[i]) {
-                        skipme = 1;
-                        break;
-                    }
-                }//end of bad move check
-            } while(skipme == 1); //no good move to make end of loop
-            convertMove(bmatch[getrand]);
-            return 1;
-        }//end of bad move
-
-        else if (!goodmove.empty()) {// if there is no bad moves, but there is a good move, make a random good move.
-                int getrand = rand() % goodmove.size();
-                convertMove(goodmove[getrand]);
-                return 1;
-                }
-        else
-            return 0;
-
-}
-
-
-
-//--------------Fuction to check if there is a win to be had at some point...
-/*  old code
-bool BoardData::matchMaker() {
-    
-    //do the logic to see what move is the best choice.
-    if (isBmatch >= isUmatch) { //If the bot can make more matches this turn
-        if ((isBmatch / 2) == 1) { //if there is only 1 match to make.
-            int getrand = rand() % isBmatch;
-            locations[0] = bmatch[getrand][0];
-            locations[1] = bmatch[getrand][1];
-            return 1;
-            }
-        else if ( (isBmatch /2) > 1) { //if there is more than 1 match to make.
-            
-            if ( (board[1][1] == ' ') && (countturns < 2) && 
-                (board[0][0] == botside || board[0][2] == botside || board[2][0] == botside || board[2][2] == botside) ) {
-                    //If the middle is open and we have a move to connect to already we either win or stalemate...
-                    locations[0] = 1;
-                    locations[1] = 1;
-                    return 1; //move to the middle
-                    }
-                    
-            else {
-                //loop and make the move if it is a corner move (priority corner)
-                for (int i = 0; i < isBmatch; i++) {
-                    for (int j = 0; j < isBmatch; j++) {
-                        if (i == j) {
-                        continue; //it will always be true otherwise... that's bad, mmk?
-                        }
-                    else {
-                        if (bmatch[i][0] == bmatch[j][0] && bmatch[i][1] == bmatch[j][1]) {
-
-                            if ( (bmatch[i][0] == 0 && (bmatch[i][1] == 0 || bmatch[i][1] == 2) ) || 
-                                (bmatch[i][0] == 2 && (bmatch[i][1] == 0 || bmatch[i][1] == 2) ) ) { 
-                                    locations[0] = bmatch[i][0];
-                                    locations[1] = bmatch[i][1];
-                                    return 1; //this is our move
-                                    }
-                            else if ( (bmatch[j][0] == 0 && (bmatch[j][1] == 0 || bmatch[j][1] == 2) ) || 
-                                (bmatch[j][0] == 2 && (bmatch[j][1] == 0 || bmatch[j][1] == 2) ) ) {
-                                    locations[0] = bmatch[j][0];
-                                    locations[1] = bmatch[j][1];
-                                    return 1; //this is our move
-                                    }
-                            
-                            
-                
-                            }
-                        }
-                    }
-                }//end of loop
-
-                //Loop again if no corner move was found
-                for (int i = 0; i < isBmatch; i++) {
-                    for (int j = 0; j < isBmatch; j++) {
-                        if (i == j) {
-                        continue; //it will always be true otherwise... that's bad, mmk?
-                        }
-                    else {
-                        if (bmatch[i][0] == bmatch[j][0] && bmatch[i][1] == bmatch[j][1]) {
-                            locations[0] = bmatch[i][0];
-                            locations[1] = bmatch[i][1];
-                            return 1; //this is our move
-                            }
-                    }
-                }
-            }//end of loop
-        } //all the code in the else
-    }
-}
-
-
-    else if (isBmatch < isUmatch) { //If the user can make more matches this turn
-        if ((isUmatch / 2) == 1) { //if there is only 1 match to make.
-            int getrand = rand() % isUmatch;
-            locations[0] = umatch[getrand][0];
-            locations[1] = umatch[getrand][1];
-            return 1;
-            }
-        else if ( (isUmatch /2) > 1) { //if there is more than 1 match to make.
-
-            
-            if ( (board[1][1] == ' ') && (countturns < 2) && 
-                    (board[0][0] == userside || board[0][2] == userside || board[2][0] == userside || board[2][2] == userside) ) {
-                    //If the middle is open and the player has a move to connect to already block the split setup
-                        locations[0] = 1;
-                        locations[1] = 1;
-                        return 1; //move to the middle
-                    }
-                    
-            else {
-                //loop and make the move if it is a corner move (priority corner)
-                for (int i = 0; i < isUmatch; i++) {
-                    for (int j = 0; j < isUmatch; j++) {
-                        if (i == j) {
-                        continue; //it will always be true otherwise... that's bad, mmk?
-                        }
-                        else {
-                        if (umatch[i][0] == umatch[j][0] && umatch[i][1] == umatch[j][1]) {
-
-                            if ( (umatch[i][0] == 0 && (umatch[i][1] == 0 || umatch[i][1] == 2) ) || 
-                                (umatch[i][0] == 2 && (umatch[i][1] == 0 || umatch[i][1] == 2) ) ) { 
-                                    locations[0] = umatch[i][0];
-                                    locations[1] = umatch[i][1];
-                                    return 1; //this is our move
-                                    }
-                            else if ( (umatch[j][0] == 0 && (umatch[j][1] == 0 || umatch[j][1] == 2) ) || 
-                                (umatch[j][0] == 2 && (umatch[j][1] == 0 || umatch[j][1] == 2) ) ) {
-                                    locations[0] = umatch[j][0];
-                                    locations[1] = umatch[j][1];
-                                    return 1; //this is our move
-                                    }
-                            
-                            
-                
-                            }
-                        }
-                    }
-                }//end of loop
-
-                //Loop again if no corner move was found
-                for (int i = 0; i < isUmatch; i++) {
-                    for (int j = 0; j < isUmatch; j++) {
-                        if (i == j) {
-                        continue; //it will always be true otherwise... that's bad, mmk?
-                        }
-                    else {
-                        if (umatch[i][0] == umatch[j][0] && umatch[i][1] == umatch[j][1]) {
-                            locations[0] = umatch[i][0];
-                            locations[1] = umatch[i][1];
-                            return 1; //this is our move
-                            }
-                    }
-                }//end of loop
-            }
-        } //all the code inside the else
-    }
-}
-
-
-
-    return 0;      
-        
-             
-}
-*/
