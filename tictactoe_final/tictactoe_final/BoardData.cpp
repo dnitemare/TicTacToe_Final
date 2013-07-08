@@ -11,7 +11,7 @@ using namespace std;
 const unsigned short int LWINCOMBO[8][3][2] = { { /*Rows*/ {0,0},{0,1},{0,2} }, { {1,0},{1,1}, {1,2} }, { {2,0},{2,1},{2,2} },
                                     /*Columns*/ { {0,0},{1,0},{2,0} }, { {0,1},{1,1},{2,1} }, { {0,2},{1,2},{2,2} },
                                     /*Diagonals*/ { {0,0},{1,1},{2,2} }, { {0,2},{1,1},{2,0} } }; 
-const unsigned short int MWINCOMBO[8][8] = { {1,2,3}, {4,5,6} , {7,8,9}, {1,4,7}, {2,5,8}, {3,6,9}, {1,5,9}, {3,5,7} };
+const unsigned short int MWINCOMBO[8][3] = { {1,2,3}, {4,5,6} , {7,8,9}, {1,4,7}, {2,5,8}, {3,6,9}, {1,5,9}, {3,5,7} };
 
 
 //*******************************************************//
@@ -24,35 +24,70 @@ bool BoardData::lookAhead() {
 
     //do this logic when the user goes first and it's the bot's first turn.
     if (countturns == 1) {
+        //user moves corner
         if (board[1][1] == ' ' && (board[0][0] == userside || board[0][2] == userside || 
             board[2][0] == userside || board[2][2] == userside)) {
             locations[0] = 1;
             locations[1] = 1;
             return 1;
             }
+        //user does not move corner
         else {
-            return cornerMove();
+            if (userpiece[0] == 2) {
+                bool getrand = rand() % 2;
+                if (getrand == 0)
+                    convertMove(7);
+                else
+                    convertMove(9);
+                return 1;
+                }
+            else if (userpiece[0] == 4) {
+                bool getrand = rand() % 2;
+                if (getrand == 0)
+                    convertMove(3);
+                else
+                    convertMove(9);
+                return 1;
+                }
+            else if (userpiece[0] == 6){
+                bool getrand = rand() % 2;
+                if (getrand == 0)
+                    convertMove(1);
+                else
+                    convertMove(7);
+                return 1;
+                }
+            else if (userpiece[0] == 8){
+                bool getrand = rand() % 2;
+                if (getrand == 0)
+                    convertMove(1);
+                else
+                    convertMove(3);
+                return 1;
+                }
+            else {
+                 return cornerMove();
+                }
         }
     }
 
     //do this logic any other time to check for a logical move
     //########################################################
     finalmove.clear();
-    pfinalmove.clear();
-    for (int i = 0; i < ismatch.size(); i++) { //check each bot move
+    for (int i = 0; i < botpiece.size(); i++) { //check each bot move
 
         //prioritize a bot's row setup for forcing the opponent's move.
-        for (int j = 0; j < botpiece.size(); j++) { //check each open space for 3 in row setup
+        for (int j = 0; j < ismatch.size(); j++) { //check each open space for 3 in row setup
             
 				
             //check if valid move
-            if (RELATIVEWIN[botpiece[j]][ismatch[i]] != -1)
-                convertMove(1 + RELATIVEWIN[botpiece[j]][ismatch[i]]);
+            if (RELATIVEWIN[botpiece[i]][ismatch[j]] != -1)
+                convertMove(RELATIVEWIN[botpiece[i]][ismatch[j]]);
 
-            if (RELATIVEWIN[botpiece[j]][ismatch[i]] != -1 && board[locations[0]][locations[1]] == ' ' ) {
+            if (RELATIVEWIN[botpiece[i]][ismatch[j]] != -1 && board[locations[0]][locations[1]] == ' ' ) {
                 badmove = 0;
-				short int tempBmove = ismatch[i];
-				userpiece.push_back(RELATIVEWIN[ botpiece[j] ][ ismatch[i] ]);
+				short int tempBmove = ismatch[j];
+				userpiece.push_back(RELATIVEWIN[ botpiece[i] ][ ismatch[j] ]);
                 short int userwins = 0;
                 
                 //check if this move is bad
@@ -60,7 +95,7 @@ bool BoardData::lookAhead() {
                     for (int l = 0; l < userpiece.size(); l++) {
                         if (k < l) {
                             int movenum = RELATIVEWIN[userpiece[k] ][ userpiece[l] ];
-                            convertMove(1 + movenum);
+                            convertMove(movenum);
                             if (movenum != -1 && board[locations[0]][locations[1]] == ' ' )
                                 userwins++;
                             }
@@ -73,29 +108,22 @@ bool BoardData::lookAhead() {
                     } //end of bad move check
                 userpiece.pop_back();
 				if (badmove == 0)
-					pfinalmove.push_back(tempBmove);
+					finalmove.push_back(tempBmove);
                 }//end of valid move check   
-            }//end of each bot move with a match
+            }//end of each open space
+    }//end of bot move
 
-        //Now check if there is any move to be had without a row setup, just to block the split.
-        //for (int j = 0; j < ismatch.size(); j++)
-    }//end of each open space
-
-    //if no moves return false, if no high priority return true with low, else return true with high
-    if (pfinalmove.size() == 0 && finalmove.size() == 0)
-        return 0;
-    else {
-        if (pfinalmove.size() == 0) {
+    //if there is a logical move to make do so
+    if (finalmove.size() != 0) {
         short int getrand = rand() % finalmove.size();
-        convertMove(1 + finalmove[getrand]);
+        convertMove(finalmove[getrand]);
         return 1;
         }
-        else {
-            short int getrand = rand() % pfinalmove.size();
-            convertMove(1 + pfinalmove[getrand]);
-            return 1;
-            }
+    else {
+        return 0;
         }
+
+
 }//end of function
 
 //*******************************************************************//
@@ -124,7 +152,7 @@ void BoardData::makeMove () {
         cout << "* " << userside << " * - ";
         cout << "choose a move. starting top left at 1, to bottom right at 9.  (1-9): ";
         cin >> setw(1) >> umove;
-        usermove[countturns] = umove;
+        savemove[countturns] = umove;
         
         convertMove(umove);
 
@@ -169,8 +197,9 @@ void BoardData::makeMove () {
             
             }
             
-        //for all bots    
+        //for all bots
         umove = convertMove(locations[0], locations[1]);
+        savemove[countturns] = umove;
         }
         
     
@@ -247,62 +276,62 @@ void BoardData::resetData() {
                 RELATIVEWIN[i][j] = -1;
                 }
             }
-        RELATIVEWIN[0][1] = 2;
-        RELATIVEWIN[0][2] = 1;
-        RELATIVEWIN[0][3] = 6;
-        RELATIVEWIN[0][4] = 8;
-        RELATIVEWIN[0][6] = 3;
-        RELATIVEWIN[0][8] = 4;
-
-        RELATIVEWIN[1][0] = 2;
-        RELATIVEWIN[1][2] = 0;
+        RELATIVEWIN[1][2] = 3;
+        RELATIVEWIN[1][3] = 2;
         RELATIVEWIN[1][4] = 7;
         RELATIVEWIN[1][7] = 4;
+        RELATIVEWIN[1][5] = 9;
+        RELATIVEWIN[1][9] = 5;
 
-        RELATIVEWIN[2][0] = 1;
-        RELATIVEWIN[2][1] = 0;
-        RELATIVEWIN[2][4] = 6;
-        RELATIVEWIN[2][6] = 4;
+        RELATIVEWIN[2][1] = 3;
+        RELATIVEWIN[2][3] = 1;
         RELATIVEWIN[2][5] = 8;
         RELATIVEWIN[2][8] = 5;
 
-        RELATIVEWIN[3][0] = 6;
-        RELATIVEWIN[3][6] = 0;
-        RELATIVEWIN[3][4] = 5;
-        RELATIVEWIN[3][5] = 4;
+        RELATIVEWIN[3][1] = 2;
+        RELATIVEWIN[3][2] = 1;
+        RELATIVEWIN[3][5] = 7;
+        RELATIVEWIN[3][7] = 5;
+        RELATIVEWIN[3][6] = 9;
+        RELATIVEWIN[3][9] = 6;
 
-        RELATIVEWIN[4][0] = 8;
-        RELATIVEWIN[4][8] = 0;
         RELATIVEWIN[4][1] = 7;
         RELATIVEWIN[4][7] = 1;
-        RELATIVEWIN[4][3] = 5;
-        RELATIVEWIN[4][5] = 3;
-        RELATIVEWIN[4][2] = 6;
-        RELATIVEWIN[4][6] = 2;
+        RELATIVEWIN[4][5] = 6;
+        RELATIVEWIN[4][6] = 5;
 
+        RELATIVEWIN[5][1] = 9;
+        RELATIVEWIN[5][9] = 1;
         RELATIVEWIN[5][2] = 8;
         RELATIVEWIN[5][8] = 2;
-        RELATIVEWIN[5][3] = 4;
-        RELATIVEWIN[5][4] = 3;
+        RELATIVEWIN[5][4] = 6;
+        RELATIVEWIN[5][6] = 4;
+        RELATIVEWIN[5][3] = 7;
+        RELATIVEWIN[5][7] = 3;
 
-        RELATIVEWIN[6][0] = 3;
-        RELATIVEWIN[6][3] = 0;
-        RELATIVEWIN[6][2] = 4;
-        RELATIVEWIN[6][4] = 2;
-        RELATIVEWIN[6][7] = 8;
-        RELATIVEWIN[6][8] = 7;
+        RELATIVEWIN[6][3] = 9;
+        RELATIVEWIN[6][9] = 3;
+        RELATIVEWIN[6][4] = 5;
+        RELATIVEWIN[6][5] = 4;
 
         RELATIVEWIN[7][1] = 4;
         RELATIVEWIN[7][4] = 1;
-        RELATIVEWIN[7][6] = 8;
-        RELATIVEWIN[7][8] = 6;
+        RELATIVEWIN[7][3] = 5;
+        RELATIVEWIN[7][5] = 3;
+        RELATIVEWIN[7][8] = 9;
+        RELATIVEWIN[7][9] = 8;
 
-        RELATIVEWIN[8][0] = 4;
-        RELATIVEWIN[8][4] = 0;
         RELATIVEWIN[8][2] = 5;
         RELATIVEWIN[8][5] = 2;
-        RELATIVEWIN[8][6] = 7;
-        RELATIVEWIN[8][7] = 6;
+        RELATIVEWIN[8][7] = 9;
+        RELATIVEWIN[8][9] = 7;
+
+        RELATIVEWIN[9][1] = 5;
+        RELATIVEWIN[9][5] = 1;
+        RELATIVEWIN[9][3] = 6;
+        RELATIVEWIN[9][6] = 3;
+        RELATIVEWIN[9][7] = 8;
+        RELATIVEWIN[9][8] = 7;
 //Relative win END
         
         ismatch.clear(); 
@@ -318,7 +347,7 @@ void BoardData::resetData() {
 
         //reset the user moves.
         for (int i = 0; i < 9; i++) {
-            usermove[i] = 0;
+            savemove[i] = 0;
         }
 }
 //---------------Function to set the Difficulty level   game.setDifficulty();
@@ -419,10 +448,10 @@ void BoardData::logWin() {
 
     outFile << "Mode: " << mode << " FirstPlayer: " << firstplayer << " Moves: ";
     for (int i = 0; i < 9; i++) {
-        if (usermove[i] == 0)
+        if (savemove[i] == 0)
             continue;
         else
-            outFile << usermove[i] << " ";
+            outFile << savemove[i] << " ";
         }
     outFile << endl;
 
@@ -701,50 +730,99 @@ short int move1[2], move2[2], move3[2];
     
     
     //loop through winning 3 in a row list
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 3; j++) {
-            if (j == 0) {
-                move1[0] = LWINCOMBO[i][j][0];
-                move1[1] = LWINCOMBO[i][j][1];
-                }
-            else if (j == 1) {
-                move2[0] = LWINCOMBO[i][j][0];
-                move2[1] = LWINCOMBO[i][j][1];
-                }
-            else if (j == 2) {
-                move3[0] = LWINCOMBO[i][j][0];
-                move3[1] = LWINCOMBO[i][j][1];
-                }
-            }// end of j loop ( set winning moves 1,2,3 ) 
+    for (int i = 0; i < 10; i++) { //10 instead of 8 to run all checks (otherwise we miss checking move 9 for user/bot
+        
+        
 
-        //if there are 2 blank spaces, mark the locations down.
-            if (board[ move1[0] ][ move1[1] ] == ' ' && board[ move2[0] ][ move2[1] ] == ' '){
-                
-                ismatch.push_back( convertMove(move1[0] , move1[1]) - 1 );
-                ismatch.push_back( convertMove(move2[0] , move2[1]) - 1 );
+        
+        if (i != 0)
+            convertMove(i); //convert to locations only if it is not loop 0 (1-9)
+
+        //check if it is (1-9) and user or bot piece
+        if (i != 0 && board[locations[0]][locations[1]] == userside) {
+            userpiece.push_back(i);
+            }
+        else if (i != 0 && board[locations[0]][locations[1]] == botside) {
+            botpiece.push_back(i);
+            }
+        //check at every loop, 0-7 for empty spaces
+        else {
+
+            if (i >= 8)
+                continue; //skip this if it is not a valid array location
+
+            int temp[3];
+
+            //set the moves
+            move1[0] = LWINCOMBO[i][0][0];
+            move1[1] = LWINCOMBO[i][0][1];
+        
+            move2[0] = LWINCOMBO[i][1][0];
+            move2[1] = LWINCOMBO[i][1][1];
+        
+            move3[0] = LWINCOMBO[i][2][0];
+            move3[1] = LWINCOMBO[i][2][1];
+
+            //if all 3 spaces are blank, mark them down
+            if (board[ move1[0] ][ move1[1] ] == ' ' && board[ move2[0] ][ move2[1] ] == ' ' && board[ move3[0] ][ move3[1] ] == ' ' ) {
+                //store the temporary board location for testing
+                temp[0] = convertMove(move1[0] , move1[1]);
+                temp[1] = convertMove(move2[0] , move2[1]);
+                temp[2] = convertMove(move3[0] , move3[1]);
+
+                //check for multiples and add first occurences
+                for (int tmpi = 0; tmpi < 3; tmpi++) {
+                    if ( killMultiples(temp[tmpi]) == 0)
+                        ismatch.push_back(temp[tmpi]);
+                    }
+                }
+        //else if there are 2 blank spaces, mark the locations down.
+            else if (board[ move1[0] ][ move1[1] ] == ' ' && board[ move2[0] ][ move2[1] ] == ' '){
+                //store the temporary board location for testing
+                temp[0] = convertMove(move1[0] , move1[1]);
+                temp[1] = convertMove(move2[0] , move2[1]);
+
+                //check for multiples and add first occurences
+                for (int tmpi = 0; tmpi < 2; tmpi++) {
+                    if ( killMultiples(temp[tmpi]) == 0)
+                        ismatch.push_back(temp[tmpi]);
+                    }
                 }
             else if (board[ move2[0] ][ move2[1] ] == ' ' && board[ move3[0] ][ move3[1] ] == ' ') {
-                
-                ismatch.push_back( convertMove(move2[0] , move2[1]) - 1 );
-                ismatch.push_back( convertMove(move3[0] , move3[1]) - 1 );
+                //store the temporary board location for testing
 
+                temp[0] = convertMove(move2[0] , move2[1]);
+                temp[1] = convertMove(move3[0] , move3[1]);
+
+                //check for multiples and add first occurences
+                for (int tmpi = 0; tmpi < 2; tmpi++) {
+                    if ( killMultiples(temp[tmpi]) == 0)
+                        ismatch.push_back(temp[tmpi]);
+                    }
                 }
             else if (board[ move1[0] ][ move1[1] ] == ' ' && board[ move3[0] ][ move3[1] ] == ' ') {
-                
-                ismatch.push_back( convertMove(move1[0] , move1[1]) - 1 );
-                ismatch.push_back( convertMove(move3[0] , move3[1]) - 1 );
+                //store the temporary board location for testing
+                temp[0] = convertMove(move1[0] , move1[1]);
+                temp[1] = convertMove(move3[0] , move3[1]);
 
+                //check for multiples and add first occurences
+                for (int tmpi = 0; tmpi < 2; tmpi++) {
+                    if ( killMultiples(temp[tmpi]) == 0)
+                        ismatch.push_back(temp[tmpi]);
+                    }
                 }
-    convertMove(i + 1);
-    if (board[locations[0]][locations[1]] == userside) {
-        userpiece.push_back(i);
-        }
-    else if (board[locations[0]][locations[1]] == botside) {
-        botpiece.push_back(i);
         }
 
     }//All the matches have been checked now 
     
 
 }
+//--------------Function to make sure there is no repeating numbers in the match vector
+bool BoardData::killMultiples(int x) {
+    for (int i = 0; i < ismatch.size(); i++) {
+        if (ismatch[i] == x)
+            return 1; //do not add this
+        }
 
+    return 0; //add this
+}
