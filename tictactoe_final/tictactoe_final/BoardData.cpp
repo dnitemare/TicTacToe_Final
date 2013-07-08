@@ -74,25 +74,26 @@ bool BoardData::lookAhead() {
     //do this logic any other time to check for a logical move
     //########################################################
     finalmove.clear();
-    for (int i = 0; i < botpiece.size(); i++) { //check each bot move
+    for (short int i = 0; i < botpiece.size(); i++) { //check each bot move
 
         //prioritize a bot's row setup for forcing the opponent's move.
-        for (int j = 0; j < ismatch.size(); j++) { //check each open space for 3 in row setup
-            
-				
-            //check if valid move
-            if (RELATIVEWIN[botpiece[i]][ismatch[j]] != -1)
-                convertMove(RELATIVEWIN[botpiece[i]][ismatch[j]]);
+        for (short int j = 0; j < ismatch.size(); j++) { //check each open space for 3 in row setup
 
-            if (RELATIVEWIN[botpiece[i]][ismatch[j]] != -1 && board[locations[0]][locations[1]] == ' ' ) {
+            int umlocation = RELATIVEWIN[botpiece[i]][ismatch[j]]; //user move location
+
+            //check if valid move
+            if (umlocation != -1)
+                convertMove(umlocation);
+
+            if (umlocation != -1 && board[locations[0]][locations[1]] == ' ' ) {
                 badmove = 0;
 				short int tempBmove = ismatch[j];
-				userpiece.push_back(RELATIVEWIN[ botpiece[i] ][ ismatch[j] ]);
+				userpiece.push_back(umlocation);
                 short int userwins = 0;
                 
                 //check if this move is bad
-				for (int k = 0; k < userpiece.size(); k++) { 
-                    for (int l = 0; l < userpiece.size(); l++) {
+				for (short int k = 0; k < userpiece.size(); k++) { 
+                    for (short int l = 0; l < userpiece.size(); l++) {
                         if (k < l) {
                             int movenum = RELATIVEWIN[userpiece[k] ][ userpiece[l] ];
                             convertMove(movenum);
@@ -271,8 +272,8 @@ void BoardData::resetData() {
 
 
         //set the relative wins START
-        for (int i = 0; i < 9; i++) { //set all values to -1 first for spotting purposes.
-            for (int j =0; j < 9; j++) {
+        for (int i = 0; i < 10; i++) { //set all values to -1 first for spotting purposes.
+            for (int j =0; j < 10; j++) {
                 RELATIVEWIN[i][j] = -1;
                 }
             }
@@ -304,10 +305,10 @@ void BoardData::resetData() {
         RELATIVEWIN[5][9] = 1;
         RELATIVEWIN[5][2] = 8;
         RELATIVEWIN[5][8] = 2;
-        RELATIVEWIN[5][4] = 6;
-        RELATIVEWIN[5][6] = 4;
         RELATIVEWIN[5][3] = 7;
         RELATIVEWIN[5][7] = 3;
+        RELATIVEWIN[5][4] = 6;
+        RELATIVEWIN[5][6] = 4;
 
         RELATIVEWIN[6][3] = 9;
         RELATIVEWIN[6][9] = 3;
@@ -468,6 +469,8 @@ int BoardData::convertMove(int x, int y) {
             return 2;
         else if (y == 2)
             return 3;
+        else
+            return 0;
     }
     else if (x == 1) {
         if (y == 0)
@@ -476,6 +479,8 @@ int BoardData::convertMove(int x, int y) {
             return 5;
         else if (y == 2)
             return 6;
+        else
+            return 0;
     }
     else if (x == 2) {
         if (y == 0)
@@ -484,6 +489,8 @@ int BoardData::convertMove(int x, int y) {
             return 8;
         else if (y == 2)
             return 9;
+        else
+            return 0;
     }
 
 }
@@ -819,7 +826,7 @@ short int move1[2], move2[2], move3[2];
 }
 //--------------Function to make sure there is no repeating numbers in the match vector
 bool BoardData::killMultiples(int x) {
-    for (int i = 0; i < ismatch.size(); i++) {
+    for (short int i = 0; i < ismatch.size(); i++) {
         if (ismatch[i] == x)
             return 1; //do not add this
         }

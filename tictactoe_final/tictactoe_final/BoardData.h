@@ -32,7 +32,7 @@ class BoardData {
         char board[SIZE][SIZE];
         unsigned short int mode;
         unsigned short int locations[2]; //this holds the final location to move to
-        short int RELATIVEWIN[9][9];
+        short int RELATIVEWIN[10][10];
 
         short int savemove[9]; //This is for the log file (all the user's/bot's moves)
         bool firstplayer; //this is for the log file (who moved first)

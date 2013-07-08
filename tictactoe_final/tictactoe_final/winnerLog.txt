@@ -1,2 +1,0 @@
-Mode: 3 FirstPlayer: 0 Moves: 4 7 3 8 9 6 1 2 5 
-Mode: 3 FirstPlayer: 0 Moves: 4 9 3 1 5 7 6 
