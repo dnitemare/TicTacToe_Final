@@ -40,7 +40,8 @@ class BoardData {
         vector<int> ismatch; //this is a list of all available moves that lead to a match
         vector<int> userpiece; //this is a list of user piece locations
         vector<int> botpiece; //this is a list of bot piece locations
-        vector<int> finalmove; //this is a list of all the final moves after logic
+        vector<int> pfinalmove; //this is a list of all the high-priority final moves after logic
+        vector<int> finalmove; //this is a list of all the low-priority final moves after logic
 
         
         //Function Prototypes

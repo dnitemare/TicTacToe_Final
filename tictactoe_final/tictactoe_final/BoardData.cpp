@@ -22,6 +22,7 @@ const unsigned short int MWINCOMBO[8][8] = { {1,2,3}, {4,5,6} , {7,8,9}, {1,4,7}
 bool BoardData::lookAhead() {
 	bool badmove = 0;
 
+    //do this logic when the user goes first and it's the bot's first turn.
     if (countturns == 1) {
         if (board[1][1] == ' ' && (board[0][0] == userside || board[0][2] == userside || 
             board[2][0] == userside || board[2][2] == userside)) {
@@ -33,45 +34,67 @@ bool BoardData::lookAhead() {
             return cornerMove();
         }
     }
-    
-    for (int i = 0; i < botpiece.size(); i++) { //check each bot movecout << i << " ";
-        for (int j = 0; j < ismatch.size(); j++) { //check each open space for 3 in row setup
-            finalmove.clear();
+
+    //do this logic any other time to check for a logical move
+    //########################################################
+    finalmove.clear();
+    pfinalmove.clear();
+    for (int i = 0; i < ismatch.size(); i++) { //check each bot move
+
+        //prioritize a bot's row setup for forcing the opponent's move.
+        for (int j = 0; j < botpiece.size(); j++) { //check each open space for 3 in row setup
+            
 				
             //check if valid move
-            if (RELATIVEWIN[botpiece[i]][ismatch[j]] != -1)
-                convertMove(1 + RELATIVEWIN[botpiece[i]][ismatch[j]]);
+            if (RELATIVEWIN[botpiece[j]][ismatch[i]] != -1)
+                convertMove(1 + RELATIVEWIN[botpiece[j]][ismatch[i]]);
 
-            if (RELATIVEWIN[botpiece[i]][ismatch[j]] != -1 && board[locations[0]][locations[1]] == ' ' ) {
+            if (RELATIVEWIN[botpiece[j]][ismatch[i]] != -1 && board[locations[0]][locations[1]] == ' ' ) {
                 badmove = 0;
-				short int tempBmove = ismatch[j];
-				short int tempUmove = RELATIVEWIN[ botpiece[i] ][ ismatch[j] ];
+				short int tempBmove = ismatch[i];
+				userpiece.push_back(RELATIVEWIN[ botpiece[j] ][ ismatch[i] ]);
                 short int userwins = 0;
-				for (int k = 0; k < userpiece.size(); k++) { //check if this move is bad
-					
-							
-                            convertMove(1 + RELATIVEWIN[userpiece[k]][tempUmove]);
-							if (RELATIVEWIN[userpiece[k]][tempUmove] != -1 && board[locations[0]][locations[1]] == ' ') {
-								userwins++;
-                                }
-
+                
+                //check if this move is bad
+				for (int k = 0; k < userpiece.size(); k++) { 
+                    for (int l = 0; l < userpiece.size(); l++) {
+                        if (k < l) {
+                            int movenum = RELATIVEWIN[userpiece[k] ][ userpiece[l] ];
+                            convertMove(1 + movenum);
+                            if (movenum != -1 && board[locations[0]][locations[1]] == ' ' )
+                                userwins++;
+                            }
+                        }
                             if (userwins >= 2) {
 							badmove = 1;
 							break;
 							}
                         
                     } //end of bad move check
+                userpiece.pop_back();
 				if (badmove == 0)
-					finalmove.push_back(tempBmove);
-                }//end of valid move check
-            }//end of each open space
-    }//end of each bot move
-    if (finalmove.size() == 0)
+					pfinalmove.push_back(tempBmove);
+                }//end of valid move check   
+            }//end of each bot move with a match
+
+        //Now check if there is any move to be had without a row setup, just to block the split.
+        //for (int j = 0; j < ismatch.size(); j++)
+    }//end of each open space
+
+    //if no moves return false, if no high priority return true with low, else return true with high
+    if (pfinalmove.size() == 0 && finalmove.size() == 0)
         return 0;
     else {
+        if (pfinalmove.size() == 0) {
         short int getrand = rand() % finalmove.size();
         convertMove(1 + finalmove[getrand]);
         return 1;
+        }
+        else {
+            short int getrand = rand() % pfinalmove.size();
+            convertMove(1 + pfinalmove[getrand]);
+            return 1;
+            }
         }
 }//end of function
 
